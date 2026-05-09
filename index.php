@@ -1,6 +1,27 @@
 <?php
 include 'db.php';
 
+function ensureCategoriesTableExists($conn) {
+    mysqli_query($conn, "CREATE TABLE IF NOT EXISTS categories (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(100) UNIQUE NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )");
+
+    $result = mysqli_query($conn, "SELECT COUNT(*) AS total FROM categories");
+    $row = mysqli_fetch_assoc($result);
+    if ((int)$row['total'] === 0) {
+        $defaultCategories = ['Breakfast', 'Lunch', 'Dinner', 'Dessert', 'Drinks'];
+        foreach ($defaultCategories as $name) {
+            $safeName = mysqli_real_escape_string($conn, $name);
+            mysqli_query($conn, "INSERT IGNORE INTO categories (name) VALUES ('$safeName')");
+        }
+    }
+}
+
+ensureCategoriesTableExists($conn);
+$categoryList = mysqli_query($conn, "SELECT name FROM categories ORDER BY name");
+
 // Get search and category filters from the URL
 $search = isset($_GET['search']) ? mysqli_real_escape_string($conn, $_GET['search']) : '';
 $category = isset($_GET['category']) ? mysqli_real_escape_string($conn, $_GET['category']) : '';
@@ -11,7 +32,7 @@ if ($search != '') {
     $query .= " AND name LIKE '%$search%'";
 }
 if ($category != '') {
-    $query .= " AND category = '$category'";
+    $query .= " AND TRIM(LOWER(category)) = LOWER(TRIM('$category'))";
 }
 $result = mysqli_query($conn, $query);
 ?>
@@ -247,11 +268,11 @@ $result = mysqli_query($conn, $query);
     <!-- Menu Navbar / Filter Pills -->
     <div class="menu-nav">
         <a href="index.php" class="nav-pill <?php echo $category == '' ? 'active' : ''; ?>">All</a>
-        <a href="index.php?category=Breakfast" class="nav-pill <?php echo $category == 'Breakfast' ? 'active' : ''; ?>">Breakfast</a>
-        <a href="index.php?category=Lunch" class="nav-pill <?php echo $category == 'Lunch' ? 'active' : ''; ?>">Lunch</a>
-        <a href="index.php?category=Dinner" class="nav-pill <?php echo $category == 'Dinner' ? 'active' : ''; ?>">Dinner</a>
-        <a href="index.php?category=Dessert" class="nav-pill <?php echo $category == 'Dessert' ? 'active' : ''; ?>">Dessert</a>
-        <a href="index.php?category=Drinks" class="nav-pill <?php echo $category == 'Drinks' ? 'active' : ''; ?>">Drinks</a>
+        <?php if ($categoryList && mysqli_num_rows($categoryList) > 0): ?>
+            <?php while ($cat = mysqli_fetch_assoc($categoryList)): ?>
+                <a href="index.php?category=<?php echo urlencode($cat['name']); ?>" class="nav-pill <?php echo $category == $cat['name'] ? 'active' : ''; ?>"><?php echo htmlspecialchars($cat['name']); ?></a>
+            <?php endwhile; ?>
+        <?php endif; ?>
     </div>
 
     <!-- The Menu Grid -->

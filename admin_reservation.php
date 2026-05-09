@@ -26,12 +26,12 @@ if (isset($_GET['logout'])) {
 if (isset($_SESSION['admin_logged_in']) && isset($_GET['delete'])) {
     $id = (int)$_GET['delete'];
     mysqli_query($conn, "DELETE FROM reservations WHERE id = $id");
-    header("Location: admin_reservations.php?status=deleted");
+    header("Location: admin_reservation.php?status=deleted");
     exit();
 }
 
 // --- 4. FETCH DATA ---
-$result = mysqli_query($conn, "SELECT * FROM reservations ORDER BY res_date DESC, res_time DESC");
+$result = mysqli_query($conn, "SELECT * FROM reservations ORDER BY STR_TO_DATE(res_date, '%Y-%m-%d') DESC, res_time DESC");
 ?>
 
 <!DOCTYPE html>
@@ -105,6 +105,7 @@ $result = mysqli_query($conn, "SELECT * FROM reservations ORDER BY res_date DESC
                     <th>Schedule</th>
                     <th>Guest Information</th>
                     <th>Party Size</th>
+                    <th>Table</th>
                     <th>Special Request</th>
                     <th>Actions</th>
                 </tr>
@@ -122,9 +123,10 @@ $result = mysqli_query($conn, "SELECT * FROM reservations ORDER BY res_date DESC
                             <small><?php echo htmlspecialchars($row['guest_email']); ?></small>
                         </td>
                         <td><span style="background:#e1f5fe; color:#0288d1; padding:4px 8px; border-radius:4px; font-weight:bold;"><?php echo $row['guest_count']; ?> Guests</span></td>
+                        <td><?php echo !empty($row['table_number']) ? htmlspecialchars($row['table_number']) : 'N/A'; ?></td>
                         <td><i style="color:#888; font-size:0.8rem;"><?php echo $row['special_request'] ? htmlspecialchars($row['special_request']) : 'None'; ?></i></td>
                         <td>
-                            <a href="admin_reservations.php?delete=<?php echo $row['id']; ?>" class="btn-del" onclick="return confirm('Cancel this booking?')">Cancel</a>
+                            <a href="admin_reservation.php?delete=<?php echo $row['id']; ?>" class="btn-del" onclick="return confirm('Cancel this booking?')">Cancel</a>
                         </td>
                     </tr>
                     <?php endwhile; ?>

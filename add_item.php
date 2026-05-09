@@ -1,13 +1,39 @@
 <?php
+session_start();
+if (!isset($_SESSION['admin_logged_in'])) {
+    header("Location: login.php");
+    exit();
+}
 include 'db.php'; 
 
 $message = "";
+
+function ensureCategoriesTableExists($conn) {
+    mysqli_query($conn, "CREATE TABLE IF NOT EXISTS categories (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(100) UNIQUE NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )");
+
+    $result = mysqli_query($conn, "SELECT COUNT(*) AS total FROM categories");
+    $row = mysqli_fetch_assoc($result);
+    if ((int)$row['total'] === 0) {
+        $defaultCategories = ['Breakfast','Lunch','Dinner','Dessert','Drinks'];
+        foreach ($defaultCategories as $name) {
+            $safeName = mysqli_real_escape_string($conn, $name);
+            mysqli_query($conn, "INSERT IGNORE INTO categories (name) VALUES ('$safeName')");
+        }
+    }
+}
+
+ensureCategoriesTableExists($conn);
+$categories = mysqli_query($conn, "SELECT * FROM categories ORDER BY name");
 
 if (isset($_POST['submit'])) {
     $name = mysqli_real_escape_string($conn, $_POST['name']);
     $price = $_POST['price'];
     $description = mysqli_real_escape_string($conn, $_POST['description']);
-    $category = $_POST['category'];
+    $category = mysqli_real_escape_string($conn, $_POST['category']);
 
     $image_name = $_FILES['image']['name'];
     $temp_name = $_FILES['image']['tmp_name'];
@@ -51,8 +77,9 @@ if (isset($_POST['submit'])) {
 <nav>
     <a href="index.php">Home</a>
     <a href="add_item.php">Add Item</a>
+    <a href="admin_categories.php">Categories</a>
     <a href="admin_dashboard.php">Dashboard</a>
-     <a href="admin_reservation.php">Reservations</a>
+    <a href="admin_reservation.php">Reservations</a>
 </nav>
 
 <div class="form-container">
@@ -64,12 +91,14 @@ if (isset($_POST['submit'])) {
         <input type="number" step="0.01" name="price" placeholder="Price" required>
         <textarea name="description" placeholder="Description"></textarea>
         
-        <select name="category">
-            <option value="Breakfast">Breakfast</option>
-            <option value="Lunch">Lunch</option>
-            <option value="Dinner">Dinner</option>
-            <option value="Dessert">Dessert</option>
-            <option value="Drinks">Drink</option>
+        <select name="category" required>
+            <?php if (mysqli_num_rows($categories) > 0): ?>
+                <?php while ($cat = mysqli_fetch_assoc($categories)): ?>
+                    <option value="<?php echo htmlspecialchars($cat['name']); ?>"><?php echo htmlspecialchars($cat['name']); ?></option>
+                <?php endwhile; ?>
+            <?php else: ?>
+                <option value="">No categories available</option>
+            <?php endif; ?>
         </select>
 
         <label style="font-size: 14px; color: #666;">Upload Image:</label>
