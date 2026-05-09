@@ -117,7 +117,8 @@ This project is provided as-is for educational and commercial use.
 ## Support
 
 For issues or questions, please create an issue in the repository or contact the development team.
-sunset00x
+
+-sunset00x
 ---
 
 **Last Updated**: May 2026
